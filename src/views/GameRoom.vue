@@ -5,6 +5,9 @@
     <ul>
       <li v-for="user in users" :key="user.id">{{ user.nickname }}</li>
     </ul>
+    <div v-if="word">
+      <p>你的词是：{{ word }}</p>
+    </div>
     <div v-if="isHost">
       <button @click="startGame">开始游戏</button>
     </div>
@@ -29,6 +32,7 @@ const wsClient = new WebSocketClient("ws://localhost:3000");
 const nickname = ref("");
 const userid = ref("");
 const roomId = route.params.roomId; // 获取传递的房间号
+const word = ref("");
 const users = ref([]); // 房间内玩家列表
 const isHost = ref(false); // 是否为房主
 const isJoin = ref(false);
@@ -65,7 +69,7 @@ onMounted(async () => {
     }
 
     if (message.type === "room_info") {
-      console.log("room_info",message.room);
+      console.log("room_info", message.room);
       users.value = message.room.users;
       for (const user of message.room.users) {
         if (user.id === uid) {
@@ -77,7 +81,18 @@ onMounted(async () => {
       isHost.value = message.room.host === userid.value;
     }
 
-    if(message.type === "error"){
+    if (message.type === "game_started") {
+      console.log("游戏开始啦");
+      if(!isJoin || message.roomId !== roomId) return;
+      users.value = message.room.users;
+      for (const user of message.room.users) {
+        if(user.id === userid.value){
+          word.value = message.word;
+        }
+      }
+    }
+
+    if (message.type === "error") {
       alert(message.message);
     }
   });
@@ -90,8 +105,8 @@ async function init() {
       await wsClient.connect();
     }
 
-    if (rid !== undefined && rid !== "undefined"){
-      if(rid !== roomId){
+    if (rid !== undefined && rid !== "undefined") {
+      if (rid !== roomId) {
         alert("你怎么进来的");
         router.push('/');
       }
@@ -139,7 +154,7 @@ function startGame() {
 }
 
 function exitRoom() {
-  if(Cookies.get("userid") === userid.value) {
+  if (Cookies.get("userid") === userid.value) {
     wsClient.send({
       type: "exit_room",
       roomId: roomId,
