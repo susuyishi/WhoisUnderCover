@@ -45,7 +45,7 @@ wss.on("connection", (ws: WebSocket) => {
                     rooms.set(roomId, room);
 
                     // 通知房间内所有用户
-                    broadcastToRoom(roomId, { type: "game_started", users: updatedUsers });
+                    broadcastToRoom(roomId, { type: "game_started", users: updatedUsers , roomId});
                 } catch (error) {
                     ws.send(JSON.stringify({ type: "error", message: "分配词语失败" }));
                 }

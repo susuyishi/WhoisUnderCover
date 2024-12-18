@@ -84,10 +84,10 @@ onMounted(async () => {
     if (message.type === "game_started") {
       console.log("游戏开始啦");
       if(!isJoin || message.roomId !== roomId) return;
-      users.value = message.room.users;
-      for (const user of message.room.users) {
+      users.value = message.users;
+      for (const user of message.users) {
         if(user.id === userid.value){
-          word.value = message.word;
+          word.value = user.word;
         }
       }
     }
