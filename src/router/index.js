@@ -1,9 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import JoinRoom from "../views/JoinRoom.vue";
 import GameRoom from "../views/GameRoom.vue";
-import Cookies from "js-cookie";
-import WebSocketClient from "../utils/websocket.js";
-const wsClient = new WebSocketClient("ws://localhost:3000");
+import exitRoom from "../utils/exitRoom.js";
 
 
 const routes = [
@@ -27,20 +25,7 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
     if (to.name === "JoinRoom" && from.name === "GameRoom") {
-        if (Cookies.get("userid") !== undefined && Cookies.get("userid") !== "undefined") {
-            const rid = Cookies.get("roomid");
-            const uid = Cookies.get("userid");
-            if (!wsClient.isConnected) {
-                await wsClient.connect();
-            }
-            wsClient.send({
-                type: "exit_room",
-                roomId: rid,
-                userId: uid
-            })
-            Cookies.set("userid", undefined);
-            Cookies.set("roomid", undefined);
-        }
+        exitRoom();
         next();
     } else {
         next();

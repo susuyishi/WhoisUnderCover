@@ -6,9 +6,11 @@ import 'tdesign-vue-next/es/style/index.css';
 import router from './router/index.js';
 import { createPinia } from "pinia";
 import Cookies from 'js-cookie';
+import exitRoom from "./utils/exitRoom.js";
 
 const app = createApp(App);
 window.addEventListener('beforeunload', () => {
+    exitRoom();
     // 获取所有cookie的键
     const allCookies = Cookies.get();
     // 清除所有cookie
