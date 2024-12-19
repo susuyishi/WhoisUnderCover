@@ -10,10 +10,16 @@
     </div>
     <div v-if="isHost">
       <button @click="startGame">开始游戏</button>
+      <button @click="hostVote">开始投票</button>
     </div>
     <div v-if="!isJoin">
       <input v-model="nickname" placeholder="输入昵称"/>
       <button @click="joinRoom">加入房间</button>
+    </div>
+    <div v-if="isJoin">
+      <t-select v-model="voteSele" @change="select(voteSele)" v-if="isVotable">
+        <t-option v-for="user in users" :label="user.nickname" :value="user.nickname"/>
+      </t-select >
     </div>
     <button @click="exitRoom">退出房间</button>
   </div>
@@ -40,6 +46,12 @@ const rid = Cookies.get("roomid");
 const uid = Cookies.get("userid");
 const nid = Cookies.get("nickname");
 
+const userNames = ref([]);
+const voteSele = ref("");
+
+const deadMan = ref([])
+const identity = ref("")
+const isVotable = ref(false)
 
 onMounted(async () => {
   if (!wsClient.isConnected) {
@@ -51,6 +63,10 @@ onMounted(async () => {
     if (message.type === "room_update") {
       if (message.roomId !== roomId) return;
       users.value = message.room.users;
+      userNames.value = []
+      users.value.forEach(item => {
+        userNames.value.push(item.nickname)
+      })
       isHost.value = message.room.host === userid.value;
     }
 
@@ -59,6 +75,10 @@ onMounted(async () => {
       Cookies.set("roomid", roomId)
       Cookies.set("nickname", message.user.nickname)
       users.value = message.room.users;
+      userNames.value = []
+      users.value.forEach(item => {
+        userNames.value.push(item.nickname)
+      })
       for (const user of message.room.users) {
         if (user.nickname === nickname.value) {
           userid.value = user.id;
@@ -71,6 +91,12 @@ onMounted(async () => {
     if (message.type === "room_info") {
       console.log("room_info", message.room);
       users.value = message.room.users;
+      userNames.value = []
+      users.value.forEach(item => {
+        userNames.value.push({label : item.nickname, value: item.nickname})
+      })
+      console.log("room_info", userNames.value);
+
       for (const user of message.room.users) {
         if (user.id === uid) {
           nickname.value = user.nickname;
@@ -83,13 +109,41 @@ onMounted(async () => {
 
     if (message.type === "game_started") {
       console.log("游戏开始啦");
-      if(!isJoin || message.roomId !== roomId) return;
+      if (!isJoin || message.roomId !== roomId) return;
       users.value = message.users;
+      userNames.value = []
+      users.value.forEach(item => {
+        userNames.value.push(item.nickname)
+      })
       for (const user of message.users) {
-        if(user.id === userid.value){
+        if (user.id === userid.value) {
           word.value = user.word;
         }
       }
+    }
+
+    if (message.type === "vote_started") {
+      console.log("开始投票");
+      if (!isJoin || message.roomId !== roomId) return;
+      isVotable.value = true;
+      //TODO 倒计时
+    }
+
+    if (message.type === "vote_ended") {
+      console.log("投票结束");
+      if (!isJoin || message.roomId !== roomId) return;
+      isVotable.value = false;
+      //TODO 判身份、
+      for (const user of message.room.users) {
+        if (user.isDead && !deadMan.value.includes(user.id)){
+          deadMan.value.push(user.id);
+          identity.value = user.role;
+          console.log(user.role);
+        }
+      }
+      alert(identity);
+      console.log(deadMan.value);
+
     }
 
     if (message.type === "error") {
@@ -122,6 +176,30 @@ async function init() {
     console.error(error);
   }
 
+}
+
+async function hostVote() {
+  wsClient.send({
+    type: "vote_start",
+    roomId: roomId,
+  });
+}
+
+function select(value) {
+  console.log(value);
+  const whobe = ref("");
+  users.value.forEach(item=>{
+    if (item.nickname === value) {
+      whobe.value = item.id;
+    }
+  });
+  console.log(whobe.value);
+  wsClient.send({
+    type: "vote_to",
+    roomId: roomId,
+    userId: whobe.value,
+    voteFromId: userid.value,
+  });
 }
 
 async function joinRoom() {

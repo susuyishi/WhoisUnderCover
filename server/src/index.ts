@@ -1,9 +1,9 @@
-import { WebSocketServer, WebSocket } from "ws";
-import { v4 as uuidv4 } from "uuid";
-import { assignRolesAndWords, fetchWords } from "./gameLogic";
-import { Room, User } from "./types";
+import {WebSocketServer, WebSocket} from "ws";
+import {v4 as uuidv4} from "uuid";
+import {assignRolesAndWords, fetchWords} from "./gameLogic";
+import {Room, User} from "./types";
 
-const wss = new WebSocketServer({ port: 3000 });
+const wss = new WebSocketServer({port: 3000});
 const rooms: Map<string, Room> = new Map();
 
 interface ClientMessage {
@@ -11,6 +11,7 @@ interface ClientMessage {
     roomId?: string;
     nickname?: string;
     userId?: string;
+    voteFromId?: string;
 }
 
 wss.on("connection", (ws: WebSocket) => {
@@ -18,18 +19,18 @@ wss.on("connection", (ws: WebSocket) => {
 
     ws.on("message", async (message: string) => {
         const data: ClientMessage = JSON.parse(message);
-        const { type, roomId, nickname , userId} = data;
+        const {type, roomId, nickname, userId, voteFromId} = data;
 
         // 加入房间逻辑
         if (type === "create_room" && roomId) {
             if (rooms.has(roomId)) {
-                ws.send(JSON.stringify({ type: "room_exist", message: "房间已存在" }));
+                ws.send(JSON.stringify({type: "room_exist", message: "房间已存在"}));
                 return;
             }
-            const room: Room = { roomId, users: [], host: "" };
+            const room: Room = {roomId, users: [], host: ""};
             rooms.set(roomId, room);
 
-            ws.send(JSON.stringify({ type: "room_created", room }));
+            ws.send(JSON.stringify({type: "room_created", room}));
         }
 
         // 开始游戏逻辑
@@ -45,12 +46,12 @@ wss.on("connection", (ws: WebSocket) => {
                     rooms.set(roomId, room);
 
                     // 通知房间内所有用户
-                    broadcastToRoom(roomId, { type: "game_started", users: updatedUsers , roomId});
+                    broadcastToRoom(roomId, {type: "game_started", users: updatedUsers, roomId});
                 } catch (error) {
-                    ws.send(JSON.stringify({ type: "error", message: "分配词语失败" }));
+                    ws.send(JSON.stringify({type: "error", message: "分配词语失败"}));
                 }
             } else {
-                ws.send(JSON.stringify({ type: "error", message: "人数不足，无法开始游戏" }));
+                ws.send(JSON.stringify({type: "error", message: "人数不足，无法开始游戏"}));
             }
         }
 
@@ -65,32 +66,90 @@ wss.on("connection", (ws: WebSocket) => {
                 }
                 room.host = room.users[0]?.id || "";
                 rooms.set(roomId!, room);
-                broadcastToRoom(roomId, { type: "room_update", room, roomId });
+                broadcastToRoom(roomId, {type: "room_update", room, roomId});
             }
         }
 
-        if (type === "get_room_info" && roomId){
+        if (type === "get_room_info" && roomId) {
 
             const room = rooms.get(roomId);
 
-            ws.send(JSON.stringify({ type: "room_info", room }));
+            ws.send(JSON.stringify({type: "room_info", room}));
         }
 
-        if (type === "join_room" && roomId){
+        if (type === "join_room" && roomId) {
             const userId = uuidv4();
             const room = rooms.get(roomId);
-            const user: User = { id: userId, nickname: nickname || `玩家${userId.slice(0, 4)}` };
+            const user: User = {id: userId, nickname: nickname || `玩家${userId.slice(0, 4)}`};
             if (room) {
                 room.users.push(user);
                 if (!room.host) room.host = userId;
             } else {
-                ws.send(JSON.stringify({ type: "error", message: "房间不存在" }));
+                ws.send(JSON.stringify({type: "error", message: "房间不存在"}));
                 return;
             }
 
             rooms.set(roomId!, room);
-            broadcastToRoom(roomId, { type: "room_update", room, roomId});
-            ws.send(JSON.stringify({ type: "join_room_success", user, room }));
+            broadcastToRoom(roomId, {type: "room_update", room, roomId});
+            ws.send(JSON.stringify({type: "join_room_success", user, room}));
+        }
+
+        if (type === "vote_start" && roomId) {
+            const room = rooms.get(roomId);
+            room?.users.forEach((user) => {
+                user.haveVote = false;
+                user.numVote = 0;
+            });
+            broadcastToRoom(roomId, {type: "vote_started", roomId})
+        }
+
+        if (type === "vote_to" && roomId && userId && voteFromId) {
+            const room = rooms.get(roomId);
+            room?.users.forEach((user) => {
+                if (user.id === userId) {
+                    user.numVote = (user.numVote || 0) + 1;
+                }
+                if (user.id === voteFromId) {
+                    user.haveVote = true;
+                }
+            });
+            var roomusers = 0;
+            room?.users.forEach((user) => {
+                if (!user.isDead) {
+                    roomusers += 1;
+                }
+            });
+            var count = 0;
+            room?.users.forEach((user) => {
+                if (user.haveVote) {
+                    count += 1;
+                }
+            });
+            if (count === roomusers) {
+                // 找出numVote最大的人
+                const beVoter = room?.users.reduce((prev, curr) => (prev.numVote || 0) > (curr.numVote || 0) ? prev : curr);
+                room?.users.forEach((user) => {
+                    if (beVoter) {
+                        if (beVoter.id === user.id) {
+                            user.isDead = true;
+                        }
+                    }
+                });
+                broadcastToRoom(roomId, {type: "vote_ended", room, roomId});
+            }
+        }
+
+        if (type === "vote_end" && roomId) {
+            const room = rooms.get(roomId);
+            const beVoter = room?.users.reduce((prev, curr) => (prev.numVote || 0) > (curr.numVote || 0) ? prev : curr);
+            room?.users.forEach((user) => {
+                if (beVoter) {
+                    if (beVoter.id === user.id) {
+                        user.isDead = true;
+                    }
+                }
+            });
+            broadcastToRoom(roomId, {type: "vote_ended", room, roomId});
         }
     });
 
