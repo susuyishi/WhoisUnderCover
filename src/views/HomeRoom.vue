@@ -22,7 +22,7 @@ import Cookies from "js-cookie";
 import {MessagePlugin} from "tdesign-vue-next";
 
 const router = useRouter();
-const wsClient = new WebSocketClient(import.meta.env.VITE_WS_URL); // WebSocket 地址
+const wsClient = new WebSocketClient(import.meta.env.VITE_WS_URL + ":3060"); // 使用环境变量
 
 const roomId = ref(""); // 用户输入的房间号
 

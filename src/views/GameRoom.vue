@@ -75,7 +75,7 @@ import {MessagePlugin} from "tdesign-vue-next";
 
 const route = useRoute();
 const router = useRouter();
-const wsClient = new WebSocketClient(import.meta.env.VITE_WS_URL);
+const wsClient = new WebSocketClient(import.meta.env.VITE_WS_URL + ":3060");
 
 const roomId = route.params.roomId; // 获取传递的房间号
 const users = ref([]); // 房间内玩家列表
