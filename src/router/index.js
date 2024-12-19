@@ -5,6 +5,7 @@ import Cookies from "js-cookie";
 import WebSocketClient from "../utils/websocket.js";
 const wsClient = new WebSocketClient("ws://localhost:3000");
 
+
 const routes = [
     {
         path: "/",

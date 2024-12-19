@@ -14,6 +14,11 @@ interface ClientMessage {
     voteFromId?: string;
 }
 
+// 每2小时清空所有房间
+setInterval(() => {
+    rooms.clear();
+}, 1000 * 60 * 60 * 2);
+
 wss.on("connection", (ws: WebSocket) => {
     console.log("WebSocket 连接已建立");
 

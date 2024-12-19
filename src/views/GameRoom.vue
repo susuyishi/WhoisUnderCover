@@ -71,9 +71,9 @@ onMounted(async () => {
     }
 
     if (message.type === "join_room_success") {
-      Cookies.set("userid", message.user.id);
-      Cookies.set("roomid", roomId)
-      Cookies.set("nickname", message.user.nickname)
+      Cookies.set("userid", message.user.id,  { expires: 1/12 });
+      Cookies.set("roomid", roomId,  { expires: 1/12 });
+      Cookies.set("nickname", message.user.nickname,  { expires: 1/12 });
       users.value = message.room.users;
       userNames.value = []
       users.value.forEach(item => {
@@ -138,10 +138,9 @@ onMounted(async () => {
         if (user.isDead && !deadMan.value.includes(user.id)){
           deadMan.value.push(user.id);
           identity.value = user.role;
-          console.log(user.role);
         }
       }
-      alert(identity);
+      console.log(identity.value);
       console.log(deadMan.value);
 
     }
