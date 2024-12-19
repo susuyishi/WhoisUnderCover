@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import JoinRoom from "../views/JoinRoom.vue";
+import HomeRoom from "../views/HomeRoom.vue";
 import GameRoom from "../views/GameRoom.vue";
 import exitRoom from "../utils/exitRoom.js";
 
@@ -7,8 +8,8 @@ import exitRoom from "../utils/exitRoom.js";
 const routes = [
     {
         path: "/",
-        name: "JoinRoom",
-        component: JoinRoom,
+        name: "HomeRoom",
+        component: HomeRoom,
     },
     {
         path: "/room/:roomId",
@@ -24,7 +25,7 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, from, next) => {
-    if (to.name === "JoinRoom" && from.name === "GameRoom") {
+    if (to.name === "HomeRoom" && from.name === "GameRoom") {
         exitRoom();
         next();
     } else {

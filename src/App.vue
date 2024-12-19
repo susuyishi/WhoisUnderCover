@@ -16,9 +16,12 @@
 }
 
 #app {
-  font-family: Arial, sans-serif;
-  text-align: center;
-  margin: 0 auto;
-  max-width: 600px;
+  min-height: 100vh;
+  background: linear-gradient(to bottom right, #e6f3ff, #ffffff);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 </style>

@@ -1,6 +1,6 @@
 import Cookies from "js-cookie";
 import WebSocketClient from "./websocket.js";
-const wsClient = new WebSocketClient("ws://localhost:3000");
+const wsClient = new WebSocketClient(import.meta.env.VITE_WS_URL);
 
 export default async function exitRoom() {
     if (Cookies.get("userid") !== undefined && Cookies.get("userid") !== "undefined") {

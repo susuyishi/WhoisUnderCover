@@ -3,7 +3,7 @@ import {v4 as uuidv4} from "uuid";
 import {assignRolesAndWords, fetchWords} from "./gameLogic";
 import {Room, User} from "./types";
 
-const wss = new WebSocketServer({port: 3000});
+const wss = new WebSocketServer({port: 3060});
 const rooms: Map<string, Room> = new Map();
 
 interface ClientMessage {
