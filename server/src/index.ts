@@ -12,6 +12,7 @@ interface ClientMessage {
     nickname?: string;
     userId?: string;
     voteFromId?: string;
+    deadUser?: User[];
 }
 
 
@@ -20,7 +21,7 @@ wss.on("connection", (ws: WebSocket) => {
 
     ws.on("message", async (message: string) => {
         const data: ClientMessage = JSON.parse(message);
-        const {type, roomId, nickname, userId, voteFromId} = data;
+        const {type, roomId, nickname, userId, voteFromId,deadUser} = data;
 
         // 加入房间逻辑
         if (type === "create_room" && roomId) {
@@ -118,43 +119,120 @@ wss.on("connection", (ws: WebSocket) => {
                     user.haveVote = true;
                 }
             });
-            var roomusers = 0;
+            let roomusers = 0;
             room?.users.forEach((user) => {
                 if (!user.isDead) {
                     roomusers += 1;
                 }
             });
-            var count = 0;
+            let count = 0;
             room?.users.forEach((user) => {
                 if (user.haveVote) {
                     count += 1;
                 }
             });
             if (count === roomusers) {
-                // 找出numVote最大的人
-                const beVoter = room?.users.reduce((prev, curr) => (prev.numVote || 0) > (curr.numVote || 0) ? prev : curr);
+                // 找出numVote最大的人，如果不唯一，则返回一个列表
+                let maxVote = 0;
+                let maxVoteUser: User[] = [];
                 room?.users.forEach((user) => {
-                    if (beVoter) {
-                        if (beVoter.id === user.id) {
-                            user.isDead = true;
+                    if (user.numVote) {
+                        if (user.numVote > maxVote) {
+                            maxVote = user.numVote;
+                            maxVoteUser = [user];
+                        } else if (user.numVote === maxVote) {
+                            maxVoteUser.push(user);
                         }
                     }
                 });
-                broadcastToRoom(roomId, {type: "vote_ended", room, roomId});
+                if(maxVoteUser.length === 1){
+                    maxVoteUser[0].isDead = true;
+                }
+                broadcastToRoom(roomId, {type: "vote_end", roomId, deadUser: maxVoteUser});
+
+
             }
         }
 
         if (type === "vote_end" && roomId) {
             const room = rooms.get(roomId);
-            const beVoter = room?.users.reduce((prev, curr) => (prev.numVote || 0) > (curr.numVote || 0) ? prev : curr);
+            let maxVote = 0;
+            let maxVoteUser: User[] = [];
             room?.users.forEach((user) => {
-                if (beVoter) {
-                    if (beVoter.id === user.id) {
-                        user.isDead = true;
+                if (user.numVote) {
+                    if (user.numVote > maxVote) {
+                        maxVote = user.numVote;
+                        maxVoteUser = [user];
+                    } else if (user.numVote === maxVote) {
+                        maxVoteUser.push(user);
                     }
                 }
             });
-            broadcastToRoom(roomId, {type: "vote_ended", room, roomId});
+            broadcastToRoom(roomId, {type: "vote_end", roomId, deadUser: maxVoteUser});
+        }
+
+        if(type === "revote" && roomId && userId && voteFromId && deadUser){
+            const room = rooms.get(roomId);
+            if(deadUser){
+                deadUser.forEach((user) => {
+                    if(userId){
+                        if(userId !== user.id){
+                            ws.send(JSON.stringify({type: "error", message: "这位不该被票"}));
+                        }
+                    }
+                });
+
+                // 找出所有room.users里isDead为false且不在deadUser里的人
+                let aliveUser: User[] = [];
+                room?.users.forEach((user) => {
+                    if(!user.isDead){
+                        let isAlive = true;
+                        deadUser.forEach((dead) => {
+                            if(user.id === dead.id){
+                                isAlive = false;
+                            }
+                        });
+                        if(isAlive){
+                            aliveUser.push(user);
+                        }
+                    }
+                });
+                deadUser.forEach((user) => {
+                    if (user.id === userId) {
+                        user.numVote = (user.numVote || 0) + 1;
+                    }
+                });
+                aliveUser.forEach((user) => {
+                    if (user.id === voteFromId) {
+                        user.haveVote = true;
+                    }
+                });
+                let aliveVoters = 0;
+                aliveUser.forEach((user) => {
+                    if (user.haveVote) {
+                        aliveVoters += 1;
+                    }
+                });
+                if(aliveVoters === aliveUser.length){
+                    // 找出numVote最大的人，如果不唯一，则返回一个列表
+                    let maxVote = 0;
+                    let maxVoteUser: User[] = [];
+                    aliveUser.forEach((user) => {
+                        if (user.numVote) {
+                            if (user.numVote > maxVote) {
+                                maxVote = user.numVote;
+                                maxVoteUser = [user];
+                            } else if (user.numVote === maxVote) {
+                                maxVoteUser.push(user);
+                            }
+                        }
+                    });
+                    if(maxVoteUser.length === 1){
+                        maxVoteUser[0].isDead = true;
+                    }
+                    broadcastToRoom(roomId, {type: "vote_end", roomId, deadUser: maxVoteUser});
+                }
+            }
         }
     });
 
@@ -168,10 +246,8 @@ function broadcastToRoom(roomId: string, message: any) {
     wss.clients.forEach((client: WebSocket) => {
         client.send(JSON.stringify(message));
 
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify(message));
-        }
     });
 }
+
 
 console.log("WebSocket 服务已启动，监听端口 3000");
