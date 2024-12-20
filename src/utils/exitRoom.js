@@ -16,5 +16,11 @@ export default async function exitRoom() {
         })
         Cookies.set("userid", undefined);
         Cookies.set("roomid", undefined);
+        // 找到所有cookie并删除
+        const cookies = Cookies.get();
+        for (const key in cookies) {
+            Cookies.remove(key);
+        }
+
     }
 }
