@@ -14,10 +14,6 @@ interface ClientMessage {
     voteFromId?: string;
 }
 
-// 每2小时清空所有房间
-setInterval(() => {
-    rooms.clear();
-}, 1000 * 60 * 60 * 2);
 
 wss.on("connection", (ws: WebSocket) => {
     console.log("WebSocket 连接已建立");
@@ -36,6 +32,10 @@ wss.on("connection", (ws: WebSocket) => {
             rooms.set(roomId, room);
 
             ws.send(JSON.stringify({type: "room_created", room}));
+            // 房间建立后两小时自动销毁
+            setTimeout(() => {
+                rooms.delete(roomId);
+            }, 2 * 60 * 60 * 1000);
         }
 
         // 开始游戏逻辑
