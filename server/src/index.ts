@@ -200,10 +200,17 @@ wss.on("connection", (ws: WebSocket) => {
                     });
                     maxVoteUser[0].isDead = true;
                 }
+                // 找出活着的人
+                let aliveUser: User[] = [];
+                room?.users.forEach((user) => {
+                    if (!user.isDead) {
+                        aliveUser.push(user);
+                    }
+                });
                 if(room){
                     rooms.set(roomId, room);
                 }
-                broadcastToRoom(roomId, {type: "vote_ended", roomId, deadMan: maxVoteUser});
+                broadcastToRoom(roomId, {type: "vote_ended", roomId, deadMan: maxVoteUser, aliveUser});
             }
 
         }
@@ -232,10 +239,17 @@ wss.on("connection", (ws: WebSocket) => {
                 maxVoteUser[0].isDead = true;
 
             }
+            // 找出活着的人
+            let aliveUser: User[] = [];
+            room?.users.forEach((user) => {
+                if (!user.isDead) {
+                    aliveUser.push(user);
+                }
+            });
             if(room){
                 rooms.set(roomId, room);
             }
-            broadcastToRoom(roomId, {type: "vote_ended", roomId, deadUser: maxVoteUser});
+            broadcastToRoom(roomId, {type: "vote_ended", roomId, deadUser: maxVoteUser, aliveUser});
         }
 
 
