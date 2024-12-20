@@ -210,7 +210,28 @@ wss.on("connection", (ws: WebSocket) => {
                 if(room){
                     rooms.set(roomId, room);
                 }
-                broadcastToRoom(roomId, {type: "vote_ended", roomId, deadMan: maxVoteUser, aliveUser});
+                // 如果卧底占比达到50%，游戏结束
+                let undercoverCount = 0;
+                let normalCount = 0;
+                room?.users.forEach((user) => {
+                    if (user.role === "卧底" && user.isDead) {
+                        undercoverCount++;
+                    }
+                    if (user.role === "普通人" && user.isDead) {
+                        normalCount++;
+                    }
+                });
+                let message = "";
+                if (undercoverCount >= normalCount) {
+                    message = "卧底胜利";
+                }else {
+                    message = "游戏继续";
+                }
+                // 如果卧底全不在了，游戏结束
+                if (undercoverCount === 0) {
+                    message = "平民胜利";
+                }
+                broadcastToRoom(roomId, {type: "vote_ended", roomId, deadMan: maxVoteUser, aliveUser, message});
             }
 
         }
@@ -249,7 +270,28 @@ wss.on("connection", (ws: WebSocket) => {
             if(room){
                 rooms.set(roomId, room);
             }
-            broadcastToRoom(roomId, {type: "vote_ended", roomId, deadUser: maxVoteUser, aliveUser});
+            // 如果卧底占比达到50%，游戏结束
+            let undercoverCount = 0;
+            let normalCount = 0;
+            room?.users.forEach((user) => {
+                if (user.role === "卧底" && user.isDead) {
+                    undercoverCount++;
+                }
+                if (user.role === "普通人" && user.isDead) {
+                    normalCount++;
+                }
+            });
+            let message = "";
+            if (undercoverCount >= normalCount) {
+                message = "卧底胜利";
+            }else {
+                message = "游戏继续";
+            }
+            // 如果卧底全不在了，游戏结束
+            if (undercoverCount === 0) {
+                message = "平民胜利";
+            }
+            broadcastToRoom(roomId, {type: "vote_ended", roomId, deadUser: maxVoteUser, aliveUser, message});
         }
 
 
