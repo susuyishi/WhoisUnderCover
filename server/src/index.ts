@@ -223,13 +223,13 @@ wss.on("connection", (ws: WebSocket) => {
                 });
                 let message = "";
                 if (undercoverCount >= normalCount) {
-                    message = "卧底胜利";
+                    message = "卧底";
                 }else {
-                    message = "游戏继续";
+                    message = "继续";
                 }
                 // 如果卧底全不在了，游戏结束
                 if (undercoverCount === 0) {
-                    message = "平民胜利";
+                    message = "平民";
                 }
                 broadcastToRoom(roomId, {type: "vote_ended", roomId, deadMan: maxVoteUser, aliveUser, message});
             }
@@ -283,13 +283,13 @@ wss.on("connection", (ws: WebSocket) => {
             });
             let message = "";
             if (undercoverCount >= normalCount) {
-                message = "卧底胜利";
+                message = "卧底";
             }else {
-                message = "游戏继续";
+                message = "继续";
             }
             // 如果卧底全不在了，游戏结束
             if (undercoverCount === 0) {
-                message = "平民胜利";
+                message = "平民";
             }
             broadcastToRoom(roomId, {type: "vote_ended", roomId, deadUser: maxVoteUser, aliveUser, message});
         }
