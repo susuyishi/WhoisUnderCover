@@ -166,7 +166,9 @@ onMounted(async () => {
           if (user.id === uid) {
             nickname.value = user.nickname;
             userid.value = user.id;
+            word.value = user.word;
           }
+
         }
         isJoin.value = true;
         isHost.value = message.room.host === userid.value;
@@ -183,7 +185,6 @@ onMounted(async () => {
         started.value = Cookies.get('started') === 'true';
         ended.value = Cookies.get('ended') === 'true';
         winner.value = Cookies.get('winner') || '';
-        word.value = Cookies.get('word') || '';
         userNames.value = JSON.parse(Cookies.get('userNames') || '[]');
         deadMan.value = JSON.parse(Cookies.get('deadMan') || '[]');
         aliveUsers.value = JSON.parse(Cookies.get('aliveUsers') || '[]');
