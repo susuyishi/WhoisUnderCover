@@ -33,12 +33,21 @@ export const assignRolesAndWords = (users: User[], words: { word1: string; word2
         if (i < normalCount) {
             shuffledUsers[i].role = "普通人";
             shuffledUsers[i].word = words.word1;
+            shuffledUsers[i].isDead = false;
+            shuffledUsers[i].haveVote = false;
+            shuffledUsers[i].numVote = 0;
         } else if (i < normalCount + undercoverCount) {
             shuffledUsers[i].role = "卧底";
             shuffledUsers[i].word = words.word2;
+            shuffledUsers[i].isDead = false;
+            shuffledUsers[i].haveVote = false;
+            shuffledUsers[i].numVote = 0;
         } else {
             shuffledUsers[i].role = "白板";
             shuffledUsers[i].word = "白板";
+            shuffledUsers[i].isDead = false;
+            shuffledUsers[i].haveVote = false;
+            shuffledUsers[i].numVote = 0;
         }
     }
 

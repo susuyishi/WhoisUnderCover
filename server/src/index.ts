@@ -45,6 +45,7 @@ wss.on("connection", (ws: WebSocket) => {
 
             if (room && room.users.length >= 4) {
                 try {
+
                     const words = await fetchWords();
                     const updatedUsers = assignRolesAndWords(room.users, words);
                     room.users = updatedUsers;
