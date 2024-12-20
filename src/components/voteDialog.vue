@@ -3,6 +3,7 @@
     <div class="dialog">
       <div class="dialog-content">
         <h3>请投票</h3>
+        <h4>剩余时间：{{ countdown }}s</h4>
         <!--列表投票-->
         <div class="vote-list">
           <div v-for="user in candidateUser" :key="user.id">
@@ -28,8 +29,12 @@
           <p>你被投出去啦，哈哈</p>
         </div>
         <div v-if="!isGetVoteResult" class="vote-result">
-          <p>{{ preToDeadMan[0].nickname }}和{{ preToDeadMan[1].nickname }}平票</p>
-          <p>进入双方对决轮次</p>
+<!--          列出平票所有人-->
+          <p>本轮：</p>
+          <div v-for="user in preToDeadMan" :key="user.id">
+            <p>{{ user.nickname }}</p>
+          </div>
+          <p>平票，重新投票</p>
         </div>
 
         <div class="vote-button">
@@ -102,6 +107,10 @@ const props = defineProps({
   winner: {
     type: String,
     required: true
+  },
+  countdown: {
+    type: Number,
+    required: true
   }
 
 });
@@ -167,8 +176,14 @@ function closeVoteDialog() {
 
 .dialog-content h3 {
   color: #1890ff;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
   font-size: 1.5em;
+  font-weight: 500;
+}
+.dialog-content h4 {
+  color: rgba(24, 144, 255, 0.8);
+  margin-bottom: 10px;
+  font-size: 1.2em;
   font-weight: 500;
 }
 

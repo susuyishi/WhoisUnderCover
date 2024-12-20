@@ -23,7 +23,7 @@
       <div class="game-title" v-if="!started">等待房主开始游戏</div>
       <div class="game-info" v-if="started">
         <div class="game-title" v-if="!isVotable">游戏进行中</div>
-        <div class="game-title" v-if="isVotable">投票进行中, 请等待其他玩家投票</div>
+        <div class="game-title" v-if="isVotable">投票进行中, 请等待其他玩家投票<b>({{ countdown }} 秒)</b></div>
 
         <div class="game-word">{{ word }}</div>
       </div>
@@ -32,7 +32,7 @@
 
   <!-- 投票选择框-->
   <vote-dialog v-if="voteDialogVisible"  :user-id="userid" :is-votable="isVotable" :dead-man="deadMan" :users="users" :alive-users="aliveUsers" :pre-to-dead-man="preToDeadMan"
-               :is-get-vote-result="isGetVoteResult" :candidate-user="candidateUser" :oprate-user="oprateUser" :ended="ended" :winner="winner"
+               :is-get-vote-result="isGetVoteResult" :candidate-user="candidateUser" :oprate-user="oprateUser" :ended="ended" :winner="winner" :countdown="countdown"
                @vote-to="voteTo" @close-vote-dialog="closeVoteDialog" />
 
   <!-- 底部操作栏 -->
@@ -84,6 +84,7 @@ const isJoin = ref(false);
 const rid = Cookies.get("roomid");
 const uid = Cookies.get("userid");
 const nid = Cookies.get("nickname");
+const countdown = ref(15);
 
 const started = ref(false);
 const ended = ref(false);
@@ -100,6 +101,8 @@ const voteDialogVisible = ref(false);
 
 const oprateUser = ref([]);
 const candidateUser = ref([]);
+
+
 
 watch([users, randKey, dialogVisible, nickname, userid, hostId, isHost, isJoin, started, ended, winner, word, userNames, deadMan, aliveUsers, preToDeadMan, isGetVoteResult, isVotable, voteDialogVisible, oprateUser, candidateUser],
   ([newUsers, newRandKey, newDialogVisible, newNickname, newUserid, newHostId, newIsHost, newIsJoin, newStarted, newEnded, newWinner, newWord, newUserNames, newDeadMan, newAliveUsers, newPreToDeadMan, newIsGetVoteResult, newIsVotable, newVoteDialogVisible, newOprateUser, newCandidateUser]) => {
@@ -187,6 +190,11 @@ onMounted(async () => {
         winner.value = Cookies.get('winner') || '';
         userNames.value = JSON.parse(Cookies.get('userNames') || '[]');
         deadMan.value = JSON.parse(Cookies.get('deadMan') || '[]');
+for (const dead of deadMan.value) {
+  document.getElementById(String(dead.id)).className = "userDead";
+  document.getElementById('avatar' + String(dead.id)).className = "dead";
+}
+
         aliveUsers.value = JSON.parse(Cookies.get('aliveUsers') || '[]');
         preToDeadMan.value = JSON.parse(Cookies.get('preToDeadMan') || '[]');
         isGetVoteResult.value = Cookies.get('isGetVoteResult') === 'true';
@@ -248,10 +256,14 @@ onMounted(async () => {
 
       isVotable.value = true;
       voteDialogVisible.value = true;
-      //TODO 倒计时
+      //倒计时
+      startCountdown();
+
     }
+
     if (message.type === "vote_ended") {
       if (!isJoin || message.roomId !== roomId) return;
+      clearTimeout(countdownInterval2);
       if (message.message === "卧底" || message.message === "平民"){
         winner.value = message.message;
         voteDialogVisible.value = true;
@@ -274,7 +286,14 @@ onMounted(async () => {
         //更改样式
         document.getElementById(message.deadUser[0].id).className = "userDead";
         document.getElementById('avatar'+message.deadUser[0].id).className = "dead";
-      }else {
+      }else if(message.deadUser.length === message.aliveUser.length){
+        aliveUsers.value = message.aliveUser;
+        candidateUser.value = message.aliveUser;
+        oprateUser.value = message.aliveUser;
+        preToDeadMan.value = candidateUser.value;
+        isGetVoteResult.value = false;
+      }
+      else {
         aliveUsers.value = message.aliveUser;
         candidateUser.value = message.deadUser;
         oprateUser.value = message.aliveUser.filter(aliveUser =>
@@ -362,12 +381,28 @@ function startVote() {
     roomId: roomId,
   });
 
-  setTimeout(() => {
-    wsClient.send({
-      type: "vote_end",
-      roomId: roomId,
-    });
-  }, 20000);
+  let ctd = 15;
+  countdownInterval2 = setTimeout(() => {
+      wsClient.send({
+        type: "vote_end",
+        roomId: roomId,
+      });
+  }, ctd * 1000); // Decrease countdown every second
+
+}
+
+
+let countdownInterval2 = null;
+
+function startCountdown() {
+  countdown.value = 15;
+  let countdownInterval1 = setInterval(() => {
+    if (countdown.value > 0) {
+      countdown.value--;
+    } else {
+      clearInterval(countdownInterval1);
+    }
+  }, 1000); // Decrease countdown every second
 }
 
 
@@ -612,8 +647,6 @@ function exitRoom() {
 
 .bottom-bar {
   height: 70px;
-  background: white;
-  border-top: 1px solid #eee;
   padding: 0 20px;
   display: flex;
   align-items: center;

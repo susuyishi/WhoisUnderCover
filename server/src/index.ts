@@ -305,7 +305,9 @@ wss.on("connection", (ws: WebSocket) => {
  */
 function broadcastToRoom(roomId: string, message: any) {
     wss.clients.forEach((client: WebSocket) => {
-        client.send(JSON.stringify(message));
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(message));
+        }
 
     });
 }

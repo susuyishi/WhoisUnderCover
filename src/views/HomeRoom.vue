@@ -9,7 +9,7 @@
     </div>
   </div>
 
-  <t-link theme="primary" @click="clearCookies" style="margin-top: 20px" underline> 有问题点这里 </t-link>
+  <t-link theme="primary" @click="clearCookies" style="margin-top: 20px" underline> 出错误点这里 </t-link>
 
 
 </template>
@@ -20,6 +20,7 @@ import {useRouter} from "vue-router";
 import WebSocketClient from "../utils/websocket.js";
 import Cookies from "js-cookie";
 import {MessagePlugin} from "tdesign-vue-next";
+import exitRoom from "../utils/exitRoom.js";
 
 const router = useRouter();
 const wsClient = new WebSocketClient(import.meta.env.VITE_WS_URL + ":3060"); // 使用环境变量
@@ -27,8 +28,7 @@ const wsClient = new WebSocketClient(import.meta.env.VITE_WS_URL + ":3060"); // 
 const roomId = ref(""); // 用户输入的房间号
 
 function clearCookies() {
-  Cookies.set("userid", undefined);
-  Cookies.set("roomid", undefined);
+  exitRoom();
   MessagePlugin.success('页面已修复');
 }
 
