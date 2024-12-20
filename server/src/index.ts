@@ -181,12 +181,12 @@ wss.on("connection", (ws: WebSocket) => {
                 // 找出numVote最大的人，如果不唯一，则返回一个列表
                 let maxVote = 0;
                 let maxVoteUser: User[] = [];
-                candidateUser.forEach((user) => {
+                room?.users.forEach((user) => {
                     if (user.numVote! > maxVote) {
                         maxVote = user.numVote!;
                     }
                 });
-                candidateUser.forEach((user) => {
+                room?.users.forEach((user) => {
                     if (user.numVote === maxVote) {
                         maxVoteUser.push(user);
                     }
@@ -217,7 +217,7 @@ wss.on("connection", (ws: WebSocket) => {
                     if (user.role === "卧底") {
                         undercoverCount++;
                     }
-                    if (user.role === "普通人") {
+                    if (user.role === "普通人" || user.role === "白板") {
                         normalCount++;
                     }
                 });
@@ -277,7 +277,7 @@ wss.on("connection", (ws: WebSocket) => {
                 if (user.role === "卧底") {
                     undercoverCount++;
                 }
-                if (user.role === "普通人") {
+                if (user.role === "普通人" || user.role === "白板") {
                     normalCount++;
                 }
             });
