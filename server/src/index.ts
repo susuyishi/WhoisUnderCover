@@ -120,38 +120,52 @@ wss.on("connection", (ws: WebSocket) => {
                 }
             });
             let roomusers = 0;
+            let count = 0;
             room?.users.forEach((user) => {
                 if (!user.isDead) {
                     roomusers += 1;
                 }
-            });
-            let count = 0;
-            room?.users.forEach((user) => {
                 if (user.haveVote) {
                     count += 1;
                 }
             });
             if (count === roomusers) {
-                // 找出numVote最大的人，如果不唯一，则返回一个列表
+                // 找出numVote最大的人
                 let maxVote = 0;
-                let maxVoteUser: User[] = [];
-                room?.users.forEach((user) => {
-                    if (user.numVote) {
-                        if (user.numVote > maxVote) {
-                            maxVote = user.numVote;
-                            maxVoteUser = [user];
-                        } else if (user.numVote === maxVote) {
-                            maxVoteUser.push(user);
-                        }
-                    }
-                });
-                if(maxVoteUser.length === 1){
-                    maxVoteUser[0].isDead = true;
+                let len = 0;
+                if (room?.users.length) {
+                    len = room?.users.length;
                 }
-                broadcastToRoom(roomId, {type: "vote_end", roomId, deadUser: maxVoteUser});
+                for (let i = 0; i < len; i++) {
+                    if (room?.users[i].numVote! > maxVote) {
+                        maxVote = room?.users[i].numVote!;
+                    }
+                }
+                // 找出numVote最大的列表
+                let maxVoteUser: User[] = [];
+                for (let i = 0; i < len; i++) {
+                    if (room?.users[i].numVote === maxVote) {
+                        maxVoteUser.push(room?.users[i]);
+                    }
+                }
 
+                if(maxVoteUser.length === 1){
+                    // room.users里对应的人的isDead设为true
+                    room?.users.forEach((user) => {
+                        if (user.id === maxVoteUser[0].id) {
+                            user.isDead = true;
+                        }
+                    });
+                    maxVoteUser[0].isDead = true;
+
+                }
+                if(room){
+                    rooms.set(roomId, room);
+                }
+                broadcastToRoom(roomId, {type: "vote_ended", roomId, deadUser: maxVoteUser});
 
             }
+
         }
 
         if (type === "vote_end" && roomId) {
@@ -159,16 +173,29 @@ wss.on("connection", (ws: WebSocket) => {
             let maxVote = 0;
             let maxVoteUser: User[] = [];
             room?.users.forEach((user) => {
-                if (user.numVote) {
-                    if (user.numVote > maxVote) {
-                        maxVote = user.numVote;
-                        maxVoteUser = [user];
-                    } else if (user.numVote === maxVote) {
-                        maxVoteUser.push(user);
-                    }
+                if (user.numVote! > maxVote) {
+                    maxVote = user.numVote!;
                 }
             });
-            broadcastToRoom(roomId, {type: "vote_end", roomId, deadUser: maxVoteUser});
+            room?.users.forEach((user) => {
+                if (user.numVote === maxVote) {
+                    maxVoteUser.push(user);
+                }
+            });
+            if(maxVoteUser.length === 1){
+                // room.users里对应的人的isDead设为true
+                room?.users.forEach((user) => {
+                    if (user.id === maxVoteUser[0].id) {
+                        user.isDead = true;
+                    }
+                });
+                maxVoteUser[0].isDead = true;
+
+            }
+            if(room){
+                rooms.set(roomId, room);
+            }
+            broadcastToRoom(roomId, {type: "vote_ended", roomId, deadUser: maxVoteUser});
         }
 
         if(type === "revote" && roomId && userId && voteFromId && deadUser){
@@ -218,19 +245,28 @@ wss.on("connection", (ws: WebSocket) => {
                     let maxVote = 0;
                     let maxVoteUser: User[] = [];
                     aliveUser.forEach((user) => {
-                        if (user.numVote) {
-                            if (user.numVote > maxVote) {
-                                maxVote = user.numVote;
-                                maxVoteUser = [user];
-                            } else if (user.numVote === maxVote) {
-                                maxVoteUser.push(user);
-                            }
+                        if (user.numVote! > maxVote) {
+                            maxVote = user.numVote!;
+                        }
+                    });
+                    aliveUser.forEach((user) => {
+                        if (user.numVote === maxVote) {
+                            maxVoteUser.push(user);
                         }
                     });
                     if(maxVoteUser.length === 1){
+                        // room.users里对应的人的isDead设为true
+                        room?.users.forEach((user) => {
+                            if (user.id === maxVoteUser[0].id) {
+                                user.isDead = true;
+                            }
+                        });
                         maxVoteUser[0].isDead = true;
                     }
-                    broadcastToRoom(roomId, {type: "vote_end", roomId, deadUser: maxVoteUser});
+                    if(room){
+                        rooms.set(roomId, room);
+                    }
+                    broadcastToRoom(roomId, {type: "vote_ended", roomId, deadUser: maxVoteUser});
                 }
             }
         }
