@@ -213,11 +213,11 @@ wss.on("connection", (ws: WebSocket) => {
                 // 如果卧底占比达到50%，游戏结束
                 let undercoverCount = 0;
                 let normalCount = 0;
-                room?.users.forEach((user) => {
-                    if (user.role === "卧底" && user.isDead) {
+                aliveUser.forEach((user) => {
+                    if (user.role === "卧底") {
                         undercoverCount++;
                     }
-                    if (user.role === "普通人" && user.isDead) {
+                    if (user.role === "普通人") {
                         normalCount++;
                     }
                 });
@@ -231,7 +231,7 @@ wss.on("connection", (ws: WebSocket) => {
                 if (undercoverCount === 0) {
                     message = "平民";
                 }
-                broadcastToRoom(roomId, {type: "vote_ended", roomId, deadMan: maxVoteUser, aliveUser, message});
+                broadcastToRoom(roomId, {type: "vote_ended", roomId, deadUser: maxVoteUser, aliveUser, message});
             }
 
         }
@@ -273,11 +273,11 @@ wss.on("connection", (ws: WebSocket) => {
             // 如果卧底占比达到50%，游戏结束
             let undercoverCount = 0;
             let normalCount = 0;
-            room?.users.forEach((user) => {
-                if (user.role === "卧底" && user.isDead) {
+            aliveUser.forEach((user) => {
+                if (user.role === "卧底") {
                     undercoverCount++;
                 }
-                if (user.role === "普通人" && user.isDead) {
+                if (user.role === "普通人") {
                     normalCount++;
                 }
             });
