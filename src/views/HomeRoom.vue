@@ -56,7 +56,7 @@ async function joinRoom() {
     wsClient.onMessage((message) => {
       if (message.type === "room_created" || message.type === "room_exist") {
         console.log("加入房间成功:", message.room);
-
+        wsClient.disconnect();
         // 跳转到房间页面，并传递房间号
         router.push({
           name: "GameRoom",

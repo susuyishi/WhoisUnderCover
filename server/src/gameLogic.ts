@@ -1,5 +1,5 @@
 import axios from "axios";
-import { User } from "./types";
+import {User} from "./types";
 
 /**
  * 获取词语对（word1 和 word2）
@@ -26,7 +26,7 @@ export const assignRolesAndWords = (users: User[], words: { word1: string; word2
     else throw new Error("玩家数量不符合规则");
 
     // 随机打乱用户数组
-    const shuffledUsers = [...users].sort(() => Math.random() - 0.5);
+    let shuffledUsers = [...users].sort(() => Math.random() - 0.5);
 
     // 分配身份和词语
     for (let i = 0; i < shuffledUsers.length; i++) {
@@ -50,6 +50,7 @@ export const assignRolesAndWords = (users: User[], words: { word1: string; word2
             shuffledUsers[i].numVote = 0;
         }
     }
+    shuffledUsers = [...shuffledUsers].sort(() => Math.random() - 0.5);
 
     return shuffledUsers;
 };

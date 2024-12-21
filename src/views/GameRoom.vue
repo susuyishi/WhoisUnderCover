@@ -103,7 +103,6 @@ const oprateUser = ref([]);
 const candidateUser = ref([]);
 
 
-
 watch([users, randKey, dialogVisible, nickname, userid, hostId, isHost, isJoin, started, ended, winner, word, userNames, deadMan, aliveUsers, preToDeadMan, isGetVoteResult, isVotable, voteDialogVisible, oprateUser, candidateUser],
   ([newUsers, newRandKey, newDialogVisible, newNickname, newUserid, newHostId, newIsHost, newIsJoin, newStarted, newEnded, newWinner, newWord, newUserNames, newDeadMan, newAliveUsers, newPreToDeadMan, newIsGetVoteResult, newIsVotable, newVoteDialogVisible, newOprateUser, newCandidateUser]) => {
   Cookies.set('users', JSON.stringify(newUsers));
@@ -135,9 +134,16 @@ onMounted(async () => {
   }
   init();
 
+
+
+
   wsClient.onMessage((message) => {
+
+
     if (message.type === "room_update") {
-      if (message.roomId !== roomId) return;
+      if (message.roomId !== roomId) {
+        return;
+      }
       users.value = message.room.users;
       hostId.value = message.room.host;
       isHost.value = message.room.host === userid.value;
@@ -220,8 +226,11 @@ for (const dead of deadMan.value) {
     if (message.type === "game_started") {
       console.log("游戏开始啦");
 
-      if (!isJoin || message.roomId !== roomId) return;
+      if (!isJoin || message.roomId !== roomId) {
+        return;
+      }
       MessagePlugin.success("游戏开始啦");
+      clearTimeout(countdownInterval2);
 
       users.value = message.users;
       aliveUsers.value = message.users;
@@ -251,7 +260,9 @@ for (const dead of deadMan.value) {
     if (message.type === "vote_started") {
       console.log("开始投票");
 
-      if (!isJoin || message.roomId !== roomId) return;
+      if (!isJoin || message.roomId !== roomId) {
+        return;
+      }
       MessagePlugin.success("投票开始啦");
 
       isVotable.value = true;
@@ -262,7 +273,9 @@ for (const dead of deadMan.value) {
     }
 
     if (message.type === "vote_ended") {
-      if (!isJoin || message.roomId !== roomId) return;
+      if (!isJoin || message.roomId !== roomId) {
+        return;
+      }
       clearTimeout(countdownInterval2);
       if (message.message === "卧底" || message.message === "平民"){
         winner.value = message.message;
@@ -310,17 +323,19 @@ for (const dead of deadMan.value) {
     if (message.type === "error") {
       alert(message.message);
     }
+
   });
 
 });
 
+// 在页面关闭时
+window.onbeforeunload = function () {
+  wsClient.disconnect();
+};
+
 
 async function init() {
   try {
-    if (!wsClient.isConnected) {
-      await wsClient.connect();
-    }
-
     if (rid !== undefined && rid !== "undefined") {
       if (rid !== roomId) {
         MessagePlugin.error("你怎么进来的");
@@ -341,10 +356,6 @@ async function init() {
 
 async function handleNicknameSubmitted(nn) {
   try {
-    // 确保 WebSocket 连接成功
-    if (!wsClient.isConnected) {
-      await wsClient.connect();
-    }
 
     console.log("userNames", userNames.value);
     for (const niName of userNames.value) {
@@ -438,9 +449,11 @@ function exitRoom() {
     });
     Cookies.set("userid", undefined);
     Cookies.set("roomid", undefined);
+    wsClient.disconnect();
     router.push('/'); // 返回到加入房间页面
     return;
   }
+  wsClient.disconnect();
   router.push('/'); // 返回到加入房间页面
 
 }

@@ -21,6 +21,6 @@ export default async function exitRoom() {
         for (const key in cookies) {
             Cookies.remove(key);
         }
-
+        wsClient.disconnect();
     }
 }

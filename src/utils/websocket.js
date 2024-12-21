@@ -43,6 +43,10 @@ class WebSocketClient {
             callback(JSON.parse(event.data));
         };
     }
+
+    disconnect() {
+        this.socket.close();
+    }
 }
 
 export default WebSocketClient;
