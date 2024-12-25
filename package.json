@@ -14,6 +14,7 @@
     "express": "^4.21.2",
     "js-cookie": "^3.0.5",
     "pinia": "^2.3.0",
+    "socket.io-client": "^4.8.1",
     "tdesign-vue-next": "^1.10.5",
     "unplugin-auto-import": "^0.19.0",
     "unplugin-vue-components": "^0.28.0",

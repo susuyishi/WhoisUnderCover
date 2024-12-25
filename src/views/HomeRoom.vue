@@ -15,15 +15,15 @@
 </template>
 
 <script setup>
-import {computed, ref} from "vue";
-import {useRouter} from "vue-router";
-import WebSocketClient from "../utils/websocket.js";
+import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
+import SocketIOClient from "../utils/socketio.js";
 import Cookies from "js-cookie";
-import {MessagePlugin} from "tdesign-vue-next";
+import { MessagePlugin } from "tdesign-vue-next";
 import exitRoom from "../utils/exitRoom.js";
 
 const router = useRouter();
-const wsClient = new WebSocketClient(import.meta.env.VITE_WS_URL + ":3060"); // 使用环境变量
+const socketClient = new SocketIOClient(import.meta.env.VITE_WS_URL + ":3060"); // 使用环境变量
 
 const roomId = ref(""); // 用户输入的房间号
 
@@ -32,45 +32,49 @@ function clearCookies() {
   MessagePlugin.success('页面已修复');
 }
 
-
 async function joinRoom() {
-  // 检测房间号是否为6位数字
+  // 检测房间号是否为4位数字
   if (!/^\d{4}$/.test(roomId.value)) {
     await MessagePlugin.warning('请输入合法的房间号');
     return;
   }
 
   try {
-    // 确保 WebSocket 连接成功
-    if (!wsClient.isConnected) {
-      await wsClient.connect();
+    // 确保 Socket.IO 连接成功
+    if (!socketClient.isConnected) {
+      await socketClient.connect();
     }
 
     // 发送加入房间请求
-    wsClient.send({
-      type: "create_room",
-      roomId: roomId.value,
+    socketClient.send( "create_room", {
+      roomId: roomId.value
     });
 
     // 监听服务器消息，等待加入成功
-    wsClient.onMessage((message) => {
-      if (message.type === "room_created" || message.type === "room_exist") {
-        console.log("加入房间成功:", message.room);
-        wsClient.disconnect();
-        // 跳转到房间页面，并传递房间号
-        router.push({
-          name: "GameRoom",
-          params: {roomId: roomId.value},
-        });
-      }
+    socketClient.onMessage("room_created", (message) => {
+      console.log("加入房间成功:", message.room);
+      socketClient.disconnect();
+      // 跳转到房间页面，并传递房间号
+      router.push({
+        name: "GameRoom",
+        params: { roomId: roomId.value },
+      });
+    });
+
+    socketClient.onMessage("room_exist", (message) => {
+      console.log("房间已存在:", message.room);
+      socketClient.disconnect();
+      // 跳转到房间页面，并传递房间号
+      router.push({
+        name: "GameRoom",
+        params: { roomId: roomId.value },
+      });
     });
   } catch (error) {
     console.error("加入房间失败:", error);
   }
 }
-</script>
-
-<style>
+</script><style>
 .home-room {
   background: white;
   padding: 40px;

@@ -19,7 +19,8 @@ export const assignRolesAndWords = (users: User[], words: { word1: string; word2
     let normalCount = 0, undercoverCount = 0, blankCount = 0;
 
     // 确定身份比例
-    if (totalPlayers === 4) [normalCount, undercoverCount, blankCount] = [2, 1, 1];
+    if (totalPlayers === 3) [normalCount, undercoverCount] = [2, 1];
+    else if (totalPlayers === 4) [normalCount, undercoverCount, blankCount] = [2, 1, 1];
     else if (totalPlayers === 5) [normalCount, undercoverCount, blankCount] = [3, 1, 1];
     else if (totalPlayers === 6) [normalCount, undercoverCount, blankCount] = [4, 1, 1];
     else if (totalPlayers === 7) [normalCount, undercoverCount, blankCount] = [4, 2, 1];

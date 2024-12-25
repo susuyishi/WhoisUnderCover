@@ -6,5 +6,12 @@
   "scripts": {
     "start": "ts-node src/index.ts"
   },
-  "private": true
+  "private": true,
+  "dependencies": {
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "@types/socket.io": "^3.0.2"
+  }
 }

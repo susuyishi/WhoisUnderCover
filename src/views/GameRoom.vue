@@ -51,26 +51,23 @@
     </div>
   </div>
 </template>
-
 <script setup>
-import {ref, onMounted, watch} from "vue";
-import {useRoute, useRouter} from "vue-router";
-import WebSocketClient from "../utils/websocket.js";
+import { ref, onMounted, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import SocketIOClient from "../utils/socketio.js";
 import Cookies from 'js-cookie';
 
-
-import NicknameDialog from '../components/nicknameDialog.vue'
-import {MessagePlugin} from "tdesign-vue-next";
+import NicknameDialog from '../components/nicknameDialog.vue';
+import { MessagePlugin } from "tdesign-vue-next";
 import VoteDialog from "../components/voteDialog.vue";
 
 const route = useRoute();
 const router = useRouter();
-const wsClient = new WebSocketClient(import.meta.env.VITE_WS_URL+":3060");
+const socketClient = new SocketIOClient(import.meta.env.VITE_WS_URL + ":3060"); // 使用环境变量
 
 const roomId = route.params.roomId; // 获取传递的房间号
 const users = ref([]); // 房间内玩家列表
 const randKey = ref("");
-
 
 // 弹窗, 用于输入昵称
 const dialogVisible = ref(false);
@@ -102,7 +99,6 @@ const voteDialogVisible = ref(false);
 const oprateUser = ref([]);
 const candidateUser = ref([]);
 
-
 watch([users, randKey, dialogVisible, nickname, userid, hostId, isHost, isJoin, started, ended, winner, word, userNames, deadMan, aliveUsers, preToDeadMan, isGetVoteResult, isVotable, voteDialogVisible, oprateUser, candidateUser],
   ([newUsers, newRandKey, newDialogVisible, newNickname, newUserid, newHostId, newIsHost, newIsJoin, newStarted, newEnded, newWinner, newWord, newUserNames, newDeadMan, newAliveUsers, newPreToDeadMan, newIsGetVoteResult, newIsVotable, newVoteDialogVisible, newOprateUser, newCandidateUser]) => {
   Cookies.set('users', JSON.stringify(newUsers));
@@ -129,210 +125,194 @@ watch([users, randKey, dialogVisible, nickname, userid, hostId, isHost, isJoin, 
 }, { deep: true });
 
 onMounted(async () => {
-  if (!wsClient.isConnected) {
-    await wsClient.connect();
+  if (!socketClient.isConnected) {
+    await socketClient.connect();
   }
+
   init();
 
-
-
-
-  wsClient.onMessage((message) => {
-
-
-    if (message.type === "room_update") {
-      if (message.roomId !== roomId) {
-        return;
-      }
-      users.value = message.room.users;
-      hostId.value = message.room.host;
-      isHost.value = message.room.host === userid.value;
-
+  socketClient.onMessage("room_update", (message) => {
+    console.log("room_update", message.room);
+    if (message.roomId !== roomId) {
+      return;
     }
-
-    if (message.type === "join_room_success") {
-      Cookies.set("userid", message.user.id);
-      Cookies.set("roomid", roomId)
-      Cookies.set("nickname", message.user.nickname)
-      users.value = message.room.users;
-      for (const user of message.room.users) {
-        if (user.nickname === nickname.value) {
-          userid.value = user.id;
-        }
-      }
-      isJoin.value = true;
-      hostId.value = message.room.host;
-      isHost.value = message.room.host === userid.value;
-    }
-
-    if (message.type === "room_info") {
-      console.log("room_info", message.room);
-      users.value = message.room.users;
-
-      // 曾经来过
-      if (uid !== undefined && uid !== "undefined") {
-        for (const user of message.room.users) {
-          if (user.id === uid) {
-            nickname.value = user.nickname;
-            userid.value = user.id;
-            word.value = user.word;
-          }
-
-        }
-        isJoin.value = true;
-        isHost.value = message.room.host === userid.value;
-
-        // Restore state from cookies
-        users.value = JSON.parse(Cookies.get('users') || '[]');
-        randKey.value = Cookies.get('randKey') || '';
-        dialogVisible.value = Cookies.get('dialogVisible') === 'true';
-        nickname.value = Cookies.get('nickname') || '';
-        userid.value = Cookies.get('userid') || '';
-        hostId.value = Cookies.get('hostId') || '';
-        isHost.value = Cookies.get('isHost') === 'true';
-        isJoin.value = Cookies.get('isJoin') === 'true';
-        started.value = Cookies.get('started') === 'true';
-        ended.value = Cookies.get('ended') === 'true';
-        winner.value = Cookies.get('winner') || '';
-        userNames.value = JSON.parse(Cookies.get('userNames') || '[]');
-        deadMan.value = JSON.parse(Cookies.get('deadMan') || '[]');
-for (const dead of deadMan.value) {
-  document.getElementById(String(dead.id)).className = "userDead";
-  document.getElementById('avatar' + String(dead.id)).className = "dead";
-}
-
-        aliveUsers.value = JSON.parse(Cookies.get('aliveUsers') || '[]');
-        preToDeadMan.value = JSON.parse(Cookies.get('preToDeadMan') || '[]');
-        isGetVoteResult.value = Cookies.get('isGetVoteResult') === 'true';
-        isVotable.value = Cookies.get('isVotable') === 'true';
-        voteDialogVisible.value = Cookies.get('voteDialogVisible') === 'true';
-        oprateUser.value = JSON.parse(Cookies.get('oprateUser') || '[]');
-        candidateUser.value = JSON.parse(Cookies.get('candidateUser') || '[]');
-      } else {
-        // 第一次进来
-        dialogVisible.value = true;
-        voteDialogVisible.value = false;
-        userNames.value = [];
-        for (const user of message.room.users) {
-          if (user.id !== userid.value) {
-            userNames.value.push(user.nickname);
-          }
-        }
-      }
-
-      hostId.value = message.room.host;
-    }
-
-    if (message.type === "game_started") {
-      console.log("游戏开始啦");
-
-      if (!isJoin || message.roomId !== roomId) {
-        return;
-      }
-      MessagePlugin.success("游戏开始啦");
-      clearTimeout(countdownInterval2);
-
-      users.value = message.users;
-      aliveUsers.value = message.users;
-      candidateUser.value = message.users;
-      oprateUser.value = message.users;
-      for (const user of message.users) {
-        document.getElementById(user.id).className = "common";
-        document.getElementById('avatar'+user.id).className = "alive";
-        if (user.id === userid.value) {
-          word.value = user.word;
-          document.getElementById(user.id).className = "self";
-        }
-      }
-      started.value = true;
-      // 刷新字段
-      ended.value = false;
-      isVotable.value = false;
-      voteDialogVisible.value = false;
-      isGetVoteResult.value = true;
-      preToDeadMan.value = [];
-      deadMan.value = [];
-
-
-      console.log("word", started.value, word.value);
-    }
-
-    if (message.type === "vote_started") {
-      console.log("开始投票");
-
-      if (!isJoin || message.roomId !== roomId) {
-        return;
-      }
-      MessagePlugin.success("投票开始啦");
-
-      isVotable.value = true;
-      voteDialogVisible.value = true;
-      //倒计时
-      startCountdown();
-
-    }
-
-    if (message.type === "vote_ended") {
-      if (!isJoin || message.roomId !== roomId) {
-        return;
-      }
-      clearTimeout(countdownInterval2);
-      if (message.message === "卧底" || message.message === "平民"){
-        winner.value = message.message;
-        voteDialogVisible.value = true;
-        ended.value = true;
-        return;
-      }
-
-      isVotable.value = false;
-      voteDialogVisible.value = true;
-      console.log("投票结束"+voteDialogVisible.value);
-      MessagePlugin.info("投票结束");
-
-      if (message.deadUser.length === 1) {
-        deadMan.value.push(message.deadUser[0]);
-        aliveUsers.value = message.aliveUser;
-        candidateUser.value = message.aliveUser;
-        oprateUser.value = message.aliveUser;
-        isGetVoteResult.value = true;
-        console.log(deadMan.value, aliveUsers.value, candidateUser.value, oprateUser.value, isGetVoteResult.value);
-        //更改样式
-        document.getElementById(message.deadUser[0].id).className = "userDead";
-        document.getElementById('avatar'+message.deadUser[0].id).className = "dead";
-      }else if(message.deadUser.length === message.aliveUser.length){
-        aliveUsers.value = message.aliveUser;
-        candidateUser.value = message.aliveUser;
-        oprateUser.value = message.aliveUser;
-        preToDeadMan.value = candidateUser.value;
-        isGetVoteResult.value = false;
-      }
-      else {
-        aliveUsers.value = message.aliveUser;
-        candidateUser.value = message.deadUser;
-        oprateUser.value = message.aliveUser.filter(aliveUser =>
-            !candidateUser.value.some(candidate => candidate.id === aliveUser.id)
-        );
-        preToDeadMan.value = candidateUser.value;
-        isGetVoteResult.value = false;
-      }
-
-
-
-    }
-
-    if (message.type === "error") {
-      alert(message.message);
-    }
+    users.value = message.room.users;
+    hostId.value = message.room.host;
+    isHost.value = message.room.host === userid.value;
 
   });
 
+  socketClient.onMessage("join_room_success", (message) => {
+    Cookies.set("userid", message.user.id);
+    Cookies.set("roomid", roomId);
+    Cookies.set("nickname", message.user.nickname);
+    users.value = message.room.users;
+    for (const user of message.room.users) {
+      if (user.nickname === nickname.value) {
+        userid.value = user.id;
+      }
+    }
+    isJoin.value = true;
+    hostId.value = message.room.host;
+    isHost.value = message.room.host === userid.value;
+  });
+
+  socketClient.onMessage("room_info", (message) => {
+    console.log("room_info", message.room);
+    users.value = message.room.users;
+    console.log("users", users.value);
+    // 曾经来过
+    if (uid !== undefined && uid !== "undefined") {
+      for (const user of message.room.users) {
+        if (user.id === uid) {
+          nickname.value = user.nickname;
+          userid.value = user.id;
+          word.value = user.word;
+        }
+      }
+      isJoin.value = true;
+      isHost.value = message.room.host === userid.value;
+
+      // Restore state from cookies
+      users.value = JSON.parse(Cookies.get('users') || '[]');
+      randKey.value = Cookies.get('randKey') || '';
+      dialogVisible.value = Cookies.get('dialogVisible') === 'true';
+      nickname.value = Cookies.get('nickname') || '';
+      userid.value = Cookies.get('userid') || '';
+      hostId.value = Cookies.get('hostId') || '';
+      isHost.value = Cookies.get('isHost') === 'true';
+      isJoin.value = Cookies.get('isJoin') === 'true';
+      started.value = Cookies.get('started') === 'true';
+      ended.value = Cookies.get('ended') === 'true';
+      winner.value = Cookies.get('winner') || '';
+      userNames.value = JSON.parse(Cookies.get('userNames') || '[]');
+      deadMan.value = JSON.parse(Cookies.get('deadMan') || '[]');
+      for (const dead of deadMan.value) {
+        document.getElementById(String(dead.id)).className = "userDead";
+        document.getElementById('avatar' + String(dead.id)).className = "dead";
+      }
+      aliveUsers.value = JSON.parse(Cookies.get('aliveUsers') || '[]');
+      preToDeadMan.value = JSON.parse(Cookies.get('preToDeadMan') || '[]');
+      isGetVoteResult.value = Cookies.get('isGetVoteResult') === 'true';
+      isVotable.value = Cookies.get('isVotable') === 'true';
+      voteDialogVisible.value = Cookies.get('voteDialogVisible') === 'true';
+      oprateUser.value = JSON.parse(Cookies.get('oprateUser') || '[]');
+      candidateUser.value = JSON.parse(Cookies.get('candidateUser') || '[]');
+    } else {
+      // 第一次进来
+      dialogVisible.value = true;
+      voteDialogVisible.value = false;
+      userNames.value = [];
+      for (const user of message.room.users) {
+        if (user.id !== userid.value) {
+          userNames.value.push(user.nickname);
+        }
+      }
+    }
+
+    hostId.value = message.room.host;
+  });
+
+  socketClient.onMessage("game_started", (message) => {
+    console.log("游戏开始啦");
+
+    if (!isJoin || message.roomId !== roomId) {
+      return;
+    }
+    MessagePlugin.success("游戏开始啦");
+    clearTimeout(countdownInterval2);
+
+    users.value = message.users;
+    aliveUsers.value = message.users;
+    candidateUser.value = message.users;
+    oprateUser.value = message.users;
+    for (const user of message.users) {
+      document.getElementById(user.id).className = "common";
+      document.getElementById('avatar' + user.id).className = "alive";
+      if (user.id === userid.value) {
+        word.value = user.word;
+        document.getElementById(user.id).className = "self";
+      }
+    }
+    started.value = true;
+    // 刷新字段
+    ended.value = false;
+    isVotable.value = false;
+    voteDialogVisible.value = false;
+    isGetVoteResult.value = true;
+    preToDeadMan.value = [];
+    deadMan.value = [];
+
+    console.log("word", started.value, word.value);
+  });
+
+  socketClient.onMessage("vote_started", (message) => {
+    console.log("开始投票");
+
+    if (!isJoin || message.roomId !== roomId) {
+      return;
+    }
+    MessagePlugin.success("投票开始啦");
+
+    isVotable.value = true;
+    voteDialogVisible.value = true;
+    //倒计时
+    startCountdown();
+  });
+
+  socketClient.onMessage("vote_ended", (message) => {
+    if (!isJoin || message.roomId !== roomId) {
+      return;
+    }
+    clearTimeout(countdownInterval2);
+    if (message.message === "卧底" || message.message === "平民") {
+      winner.value = message.message;
+      voteDialogVisible.value = true;
+      ended.value = true;
+      return;
+    }
+
+    isVotable.value = false;
+    voteDialogVisible.value = true;
+    console.log("投票结束" + voteDialogVisible.value);
+    MessagePlugin.info("投票结束");
+
+    if (message.deadUser.length === 1) {
+      deadMan.value.push(message.deadUser[0]);
+      aliveUsers.value = message.aliveUser;
+      candidateUser.value = message.aliveUser;
+      oprateUser.value = message.aliveUser;
+      isGetVoteResult.value = true;
+      console.log(deadMan.value, aliveUsers.value, candidateUser.value, oprateUser.value, isGetVoteResult.value);
+      //更改样式
+      document.getElementById(message.deadUser[0].id).className = "userDead";
+      document.getElementById('avatar' + message.deadUser[0].id).className = "dead";
+    } else if (message.deadUser.length === message.aliveUser.length) {
+      aliveUsers.value = message.aliveUser;
+      candidateUser.value = message.aliveUser;
+      oprateUser.value = message.aliveUser;
+      preToDeadMan.value = candidateUser.value;
+      isGetVoteResult.value = false;
+    } else {
+      aliveUsers.value = message.aliveUser;
+      candidateUser.value = message.deadUser;
+      oprateUser.value = message.aliveUser.filter(aliveUser =>
+        !candidateUser.value.some(candidate => candidate.id === aliveUser.id)
+      );
+      preToDeadMan.value = candidateUser.value;
+      isGetVoteResult.value = false;
+    }
+  });
+
+  socketClient.onMessage("error", (message) => {
+    alert(message.message);
+  });
 });
 
 // 在页面关闭时
 window.onbeforeunload = function () {
-  wsClient.disconnect();
+  socketClient.disconnect();
 };
-
 
 async function init() {
   try {
@@ -343,20 +323,15 @@ async function init() {
       }
     }
 
-    wsClient.send({
-      type: "get_room_info",
-      roomId: roomId,
-    });
+    socketClient.send("get_room_info", { roomId: roomId });
 
   } catch (error) {
     console.error(error);
   }
-
 }
 
 async function handleNicknameSubmitted(nn) {
   try {
-
     console.log("userNames", userNames.value);
     for (const niName of userNames.value) {
       if (niName === nn) {
@@ -365,11 +340,7 @@ async function handleNicknameSubmitted(nn) {
       }
     }
 
-    wsClient.send({
-      type: "join_room",
-      roomId: roomId,
-      nickname: nn,
-    });
+    socketClient.send("join_room", { roomId: roomId, nickname: nn });
 
     nickname.value = nn;
     dialogVisible.value = false;
@@ -380,28 +351,17 @@ async function handleNicknameSubmitted(nn) {
 }
 
 function startGame() {
-  wsClient.send({
-    type: "start_game",
-    roomId: roomId,
-  });
+  socketClient.send("start_game", { roomId: roomId });
 }
 
 function startVote() {
-  wsClient.send({
-    type: "vote_start",
-    roomId: roomId,
-  });
+  socketClient.send("vote_start", { roomId: roomId });
 
   let ctd = 15;
   countdownInterval2 = setTimeout(() => {
-      wsClient.send({
-        type: "vote_end",
-        roomId: roomId,
-      });
+    socketClient.send("vote_end", { roomId: roomId });
   }, ctd * 1000); // Decrease countdown every second
-
 }
-
 
 let countdownInterval2 = null;
 
@@ -416,12 +376,9 @@ function startCountdown() {
   }, 1000); // Decrease countdown every second
 }
 
-
-
 function voteTo(voteSele) {
   try {
-    wsClient.send({
-      type: "vote_to",
+    socketClient.send("vote_to", {
       roomId: roomId,
       userId: voteSele,
       voteFromId: userid.value,
@@ -439,23 +396,20 @@ function closeVoteDialog() {
   voteDialogVisible.value = false;
 }
 
-
 function exitRoom() {
   if (Cookies.get("userid") === userid.value) {
-    wsClient.send({
-      type: "exit_room",
+    socketClient.send("exit_room", {
       roomId: roomId,
       userId: userid.value
     });
     Cookies.set("userid", undefined);
     Cookies.set("roomid", undefined);
-    wsClient.disconnect();
+    socketClient.disconnect();
     router.push('/'); // 返回到加入房间页面
     return;
   }
-  wsClient.disconnect();
+  socketClient.disconnect();
   router.push('/'); // 返回到加入房间页面
-
 }
 </script>
 <style>
