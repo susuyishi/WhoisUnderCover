@@ -1,5 +1,22 @@
-# Vue 3 + Vite
+# 谁是卧底
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+> 一个简单的谁是卧底游戏，基于vue3 + vite + socket.io
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+## 客户端
+项目根目录
+
+> 安装依赖
+```bash
+npm install
+```
+
+> 启动项目
+```bash
+npm run dev
+```
+
+
+## 服务端
+server目录
+
+> 安装依赖和启动见server/README.md
