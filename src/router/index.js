@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from "vue-router";
-import JoinRoom from "../views/JoinRoom.vue";
 import HomeRoom from "../views/HomeRoom.vue";
 import GameRoom from "../views/GameRoom.vue";
 import exitRoom from "../utils/exitRoom.js";

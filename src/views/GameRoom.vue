@@ -323,7 +323,7 @@ async function init() {
       }
     }
 
-    socketClient.send("get_room_info", { roomId: roomId });
+    socketClient.send("get_room_info", { roomId: roomId ,userId: uid});
 
   } catch (error) {
     console.error(error);
